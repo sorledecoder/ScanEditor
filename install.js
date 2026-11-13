@@ -1,31 +1,59 @@
 // ============================================================
-// install.js — handles the "Install App" button and registers
-// the service worker so the app shell works offline.
+// install.js — "Install App" button in the header + service
+// worker registration so the app works offline.
 // ============================================================
 
-let deferredPrompt;
-const installContainer = document.getElementById('install-container');
-const installBtn        = document.getElementById('install-btn');
+let deferredPrompt = null;
 
+const $id = (id) => document.getElementById(id);
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+const isIOS = () =>
+  /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function showInstall(show) {
+  const box = $id('install-container');
+  if (box) box.style.display = show ? 'block' : 'none';
+}
+
+function say(msg, ms) {
+  if (typeof toast === 'function') toast(msg, ms);
+  else alert(msg);
+}
+
+// Chrome / Edge / Android: browser says the app is installable
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  if (installContainer) installContainer.style.display = 'block';
+  if (!isStandalone()) showInstall(true);
 });
 
-if (installBtn) {
-  installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    if (installContainer) installContainer.style.display = 'none';
-  });
-}
-
 window.addEventListener('appinstalled', () => {
-  if (installContainer) installContainer.style.display = 'none';
   deferredPrompt = null;
+  showInstall(false);
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = $id('install-btn');
+
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        showInstall(false);
+      } else if (isIOS()) {
+        say('Tap the Share button, then "Add to Home Screen"', 7000);
+      }
+    });
+  }
+
+  // iPhone / iPad Safari never fires beforeinstallprompt, so show the
+  // button anyway and explain the manual steps when it is tapped.
+  if (isIOS() && !isStandalone()) showInstall(true);
 });
 
 if ('serviceWorker' in navigator) {

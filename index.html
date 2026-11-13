@@ -11,6 +11,10 @@
        APPLE TOUCH ICON (iPhone/iPad home screen)
   ========================================== -->
   <link rel="apple-touch-icon" href="scanner-192.ico" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="install.js"></script>
 <style>
 :root{--bg:#0f1419;--p:#1b222b;--b:#2d3743;--t:#e8edf2;--m:#8b98a5;--a:#3b9eff}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
@@ -18,6 +22,8 @@ body{background:var(--bg);color:var(--t);font:14px system-ui,sans-serif;display:
 header,#pbar,#tools,#opts{background:var(--p);border-bottom:1px solid var(--b);flex:none;display:flex;gap:6px;align-items:center;padding:6px 8px;overflow-x:auto;white-space:nowrap}
 header{padding-top:calc(6px + env(safe-area-inset-top,0px))}
 h1{font-size:15px;margin:0;flex:1;min-width:90px}
+#install-container{flex:none;display:none}
+header .install-button{padding:7px 12px;font-size:13px;border-width:1.5px;border-radius:8px;letter-spacing:0;white-space:nowrap;box-shadow:0 2px 8px rgba(233,69,96,.3)}
 button,select,input[type=color]{background:#26303b;color:var(--t);border:1px solid var(--b);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer;flex:none}
 input[type=color]{padding:2px;width:40px;height:36px}
 button.on{background:var(--a);border-color:var(--a);color:#fff}
@@ -42,7 +48,7 @@ button.pri{background:#1f8f4e;border-color:#1f8f4e;color:#fff}
 .dinfo{font-size:12px;color:var(--m);margin:0 0 8px}.dinfo a{color:var(--a);text-decoration:underline;cursor:pointer}.dinfo:empty{display:none}.drow{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:10px}.drow small{margin-right:auto;color:var(--m);font-size:12px}
 .seg{display:inline-flex;flex:none;gap:0}.chk{display:inline-flex;gap:5px;align-items:center;color:var(--m);font-size:12px;flex:none}.sw{width:24px;height:24px;border-radius:50%;border:2px solid #fff;padding:0;flex:none}.seg button.on{background:var(--a);border-color:var(--a);color:#fff}
 </style></head><body>
-<header><h1>Scan &amp; PDF Editor</h1>
+<header><div id="install-container"><button id="install-btn" class="install-button" type="button">📲 Install</button></div><h1>Scan &amp; PDF Editor</h1>
 <button onclick="fi.click()">📂 Open</button>
 <button class="pri" onclick="exportPdf()">⬇ PDF</button>
 <button onclick="exportPng()">⬇ PNG</button></header>
