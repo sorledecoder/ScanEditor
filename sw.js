@@ -1,6 +1,6 @@
 // sw.js — caches the app shell so ScanEditor opens fully offline.
 // Bump CACHE whenever you upload a new index.html so users get the update.
-const CACHE = 'scaneditor-v1';
+const CACHE = 'scaneditor-v2';
 const SHELL = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const SHELL = [
   './install.js',
   './manifest.json',
   './scanner.ico',
-  './scanner-192.ico'
+  './scanner-192.ico',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {

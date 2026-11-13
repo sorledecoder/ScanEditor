@@ -47,13 +47,16 @@ window.addEventListener('DOMContentLoaded', () => {
         showInstall(false);
       } else if (isIOS()) {
         say('Tap the Share button, then "Add to Home Screen"', 7000);
+      } else {
+        say('Open the browser menu (⋮) and tap "Install app" or "Add to Home screen". The page must be opened over https.', 8000);
       }
     });
   }
 
-  // iPhone / iPad Safari never fires beforeinstallprompt, so show the
-  // button anyway and explain the manual steps when it is tapped.
-  if (isIOS() && !isStandalone()) showInstall(true);
+  // Always show the button unless the app is already installed. If the
+  // browser has no install prompt (iOS, or not yet eligible) the button
+  // explains the manual steps instead.
+  showInstall(!isStandalone());
 });
 
 if ('serviceWorker' in navigator) {
