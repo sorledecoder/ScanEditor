@@ -1,0 +1,12 @@
+{
+  "name": "ScanEditor",
+  "short_name": "ScanEditor",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    { "src": "scanner.ico", "sizes": "48x48", "type": "image/x-icon" },
+    { "src": "scanner-192.ico", "sizes": "192x192", "type": "image/x-icon" }
+  ]
+}
