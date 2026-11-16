@@ -22,8 +22,6 @@ body{background:var(--bg);color:var(--t);font:14px system-ui,sans-serif;display:
 header,#pbar,#tools,#opts{background:var(--p);border-bottom:1px solid var(--b);flex:none;display:flex;gap:6px;align-items:center;padding:6px 8px;overflow-x:auto;white-space:nowrap}
 header{padding-top:calc(6px + env(safe-area-inset-top,0px))}
 h1{font-size:15px;margin:0;flex:1;min-width:90px}
-#install-container{flex:none}
-header .install-button{padding:7px 12px;font-size:13px;border-width:1.5px;border-radius:8px;letter-spacing:0;white-space:nowrap;box-shadow:0 2px 8px rgba(233,69,96,.3)}
 button,select,input[type=color]{background:#26303b;color:var(--t);border:1px solid var(--b);border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer;flex:none}
 input[type=color]{padding:2px;width:40px;height:36px}
 button.on{background:var(--a);border-color:var(--a);color:#fff}
@@ -48,7 +46,7 @@ button.pri{background:#1f8f4e;border-color:#1f8f4e;color:#fff}
 .dinfo{font-size:12px;color:var(--m);margin:0 0 8px}.dinfo a{color:var(--a);text-decoration:underline;cursor:pointer}.dinfo:empty{display:none}.drow{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:10px}.drow small{margin-right:auto;color:var(--m);font-size:12px}
 .seg{display:inline-flex;flex:none;gap:0}.chk{display:inline-flex;gap:5px;align-items:center;color:var(--m);font-size:12px;flex:none}.sw{width:24px;height:24px;border-radius:50%;border:2px solid #fff;padding:0;flex:none}.seg button.on{background:var(--a);border-color:var(--a);color:#fff}
 </style></head><body>
-<header><div id="install-container"><button id="install-btn" class="install-button" type="button">📲 Install</button></div><h1>Scan &amp; PDF Editor</h1>
+<header><h1>Scan &amp; PDF Editor</h1>
 <button onclick="fi.click()">📂 Open</button>
 <button class="pri" onclick="exportPdf()">⬇ PDF</button>
 <button onclick="exportPng()">⬇ PNG</button></header>
@@ -425,7 +423,9 @@ const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>
 async function idbPut(n,b){try{(await idb()).transaction('fonts','readwrite').objectStore('fonts').put(b,n)}catch(e){}}
 async function loadUserFonts(){try{const st=(await idb()).transaction('fonts').objectStore('fonts'),ks=await rq(st.getAllKeys()),vs=await rq(st.getAll());for(let i=0;i<ks.length;i++)await regFont(ks[i],vs[i],false)}catch(e){}}
 
-async function loadFonts(){try{const ps=[];for(const f in FILES)for(const k in FILES[f]){const ff=new FontFace(f,b64(FILES[f][k]),{weight:k[0]=='b'?'700':'400',style:k.includes('i')?'italic':'normal'});document.fonts.add(ff);ps.push(ff.load())}await Promise.all(ps)}catch(e){}}
+async function loadFamily(f){const ps=[];for(const k in (FILES[f]||{})){const ff=new FontFace(f,b64(FILES[f][k]),{weight:k[0]=='b'?'700':'400',style:k.includes('i')?'italic':'normal'});document.fonts.add(ff);ps.push(ff.load())}await Promise.all(ps)}
+const FLOAD={};function needFont(f){if(!FILES[f]||FLOAD[f])return;FLOAD[f]=1;loadFamily(f).then(()=>draw()).catch(()=>{})}
+async function loadFonts(){}
 $('#ffi').onchange=async e=>{let n=0;for(const f of [...e.target.files]){try{await regFont(f.name.replace(/\.[^.]+$/,''),new Uint8Array(await f.arrayBuffer()),true);n++}catch(er){toast('Could not read font '+f.name,4000)}}e.target.value='';if(n){pages.forEach(p=>(p.items||[]).forEach(i=>Object.assign(i,mapFont(i.orig,i.fam0))));toast(n+' font(s) added. Matching PDF text now uses them.');opts()}};
 
 let crop=null,pages=[],cur=0,tool='sel',sel=null,drag=null,zoom=1,sigs=[],aSig=null,wmc=null,tol=40,thr=215,bsz=24,pend=null;
@@ -434,6 +434,7 @@ try{sigs=JSON.parse(localStorage.getItem('sigs')||'[]')}catch(e){}
 try{pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([$('#wk').textContent],{type:'text/javascript'}))}catch(e){}
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
 const P=()=>pages[cur],G=c=>c.getContext('2d',{willReadFrequently:true});
+const LOWMEM=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||(navigator.deviceMemory&&navigator.deviceMemory<=4),MAXD=LOWMEM?1600:2400;
 const E=P,S=1,WRAP=false,UNITF=()=>P().base.width/595;let smart=true,lastSnap=[null,0];
 const u8=url=>b64(url.split(',')[1]),loadIm=url=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=url});
 function snapSoft(t){const n=Date.now();if(lastSnap[0]!==t||n-lastSnap[1]>1500)snap();lastSnap=[t,n]}
@@ -448,7 +449,7 @@ function tm(o){if(o.k!='text')return;cx.font=fcss(o);const L=o.txt.split('\n');o
 const D2R=Math.PI/180,rotP=(x,y,a)=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)];
 const RA=o=>(o.a||0)*D2R,ctr=o=>[o.x+o.w/2,o.y+o.h/2],unit=()=>typeof UNITF=='function'?UNITF():1;
 const pen={c:'#10206b',w:2.2,mode:'pen'},shp={t:'rect',c:'#e11d48',lw:2,fill:false};
-const fcssU=o=>`${o.i&&hasI(o.f)?'italic ':''}${o.b&&hasB(o.f)?'bold ':''}${o.size}px ${(FAM[o.f]||FAM.Helvetica).css}`;
+const fcssU=o=>{needFont(o.f);return `${o.i&&hasI(o.f)?'italic ':''}${o.b&&hasB(o.f)?'bold ':''}${o.size}px ${(FAM[o.f]||FAM.Helvetica).css}`};
 function toLoc(o,q){const[a,b]=ctr(o),[x,y]=rotP(q.x-a,q.y-b,-RA(o));return{x:x+o.w/2,y:y+o.h/2}}
 function toGlob(o,lx,ly){const[a,b]=ctr(o),[x,y]=rotP(lx-o.w/2,ly-o.h/2,RA(o));return{x:a+x,y:b+y}}
 function inObj(o,q){tm(o);const l=toLoc(o,q),p=o.k=='ink'?Math.max(o.lw||2,5*unit()):0;return l.x>=-p&&l.x<=o.w+p&&l.y>=-p&&l.y<=o.h+p}
@@ -553,7 +554,7 @@ function draw(){const p=P();$('#empty').hidden=!!p;cv.hidden=!p;$('#pn').textCon
  if(drag&&drag.m=='rect'){const r=nr(drag.a,drag.b);cx.strokeStyle='#e5484d';cx.lineWidth=2*k;cx.setLineDash([8*k,6*k]);cx.strokeRect(r.x,r.y,r.w,r.h);cx.setLineDash([])}}
 const nr=(a,b)=>({x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)});
 /* ---------- undo ---------- */
-function snap(){const p=P(),last=p.undo.at(-1),v=p.base._v||0;let c;if(last&&last.base===p.base&&last.v===v)c=last.b;else{c=mk(p.base.width,p.base.height);c.getContext('2d').drawImage(p.base,0,0)}p.undo.push({b:c,base:p.base,v,o:p.ops.map(o=>({...o})),it:p.items});if(p.undo.length>14)p.undo.shift()}
+function snap(){const p=P(),last=p.undo.at(-1),v=p.base._v||0;let c;if(last&&last.base===p.base&&last.v===v)c=last.b;else{c=mk(p.base.width,p.base.height);c.getContext('2d').drawImage(p.base,0,0)}p.undo.push({b:c,base:p.base,v,o:p.ops.map(o=>({...o})),it:p.items});if(p.undo.length>(LOWMEM?5:14))p.undo.shift()}
 function undo(){const p=P();if(!p||!p.undo.length)return toast('Nothing to undo');const u=p.undo.pop();p.base=mk(u.b.width,u.b.height);G(p.base).drawImage(u.b,0,0);p.ops=u.o;p.items=u.it;sel=null;opts();draw()}
 /* ---------- pixels ---------- */
 const cl=(v,m)=>Math.max(0,Math.min(m-1,Math.round(v)));
@@ -623,18 +624,18 @@ function guessStyle(cr){const w=cr.width,h=cr.height,d=cr.getContext('2d',{willR
  return{boldR:swm/H,serifR:btm/swm,slant:bs,H}}
 
 /* ---------- OCR engine (embedded, offline) ---------- */
-let wk=null;
+let wk=null,idleT=0;const HAS_OCR=typeof Tesseract!='undefined'&&!!$('#lang').textContent.trim();
 const PRE='(function(){var b=atob(self.__LANG),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);var f=self.fetch;self.fetch=function(x){return /traineddata/.test(String(x))?Promise.resolve(new Response(u,{status:200})):f.apply(this,arguments)}})();\n';
-async function engine(){if(wk)return wk;const blob=new Blob(['self.__LANG="',$('#lang').textContent.trim(),'";',PRE,$('#core').textContent,'\n',$('#wt').textContent],{type:'text/javascript'});wk=await Tesseract.createWorker('eng',1,{workerPath:URL.createObjectURL(blob),workerBlobURL:false,langPath:'https://offline.invalid',cacheMethod:'none'});return wk}
+async function engine(){clearTimeout(idleT);if(wk)return wk;const blob=new Blob(['self.__LANG="',$('#lang').textContent.trim(),'";',PRE,$('#core').textContent,'\n',$('#wt').textContent],{type:'text/javascript'});wk=await Tesseract.createWorker('eng',1,{workerPath:URL.createObjectURL(blob),workerBlobURL:false,langPath:'https://offline.invalid',cacheMethod:'none'});return wk}
 async function ocrRegion(crop,single){const w=await engine(),k=Math.min(3,Math.max(1,64/crop.height)),pad=12,c=mk(Math.round(crop.width*k)+2*pad,Math.round(crop.height*k)+2*pad),g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.filter='grayscale(1) contrast(1.3)';g.drawImage(crop,pad,pad,c.width-2*pad,c.height-2*pad);
- await w.setParameters({tessedit_pageseg_mode:single?'7':'6'});const r=await w.recognize(c);let tx=r.data.text.replace(/\s+$/,'');if(single)tx=tx.replace(/\s*\n\s*/g,' ');return tx}
+ await w.setParameters({tessedit_pageseg_mode:single?'7':'6'});const r=await w.recognize(c);let tx=r.data.text.replace(/\s+$/,'');if(single)tx=tx.replace(/\s*\n\s*/g,' ');clearTimeout(idleT);idleT=setTimeout(()=>{try{wk&&wk.terminate()}catch(e){}wk=null},40000);return tx}
 /* ---------- edit dialog (docked, live, draggable) ---------- */
 let dlgDone=()=>{};const dlgOpen=()=>$('#dlg').classList.contains('show');
 function askText(title,val,op={}){return new Promise(res=>{$('#dt').textContent=title;$('#dinfo').innerHTML=op.info||'';const ta=$('#dta');ta.value=val||'';ta.placeholder=op.ph||'';ta.oninput=()=>op.live&&op.live(ta.value);ta._set=v=>{ta.value=v;op.live&&op.live(v)};$('#dlg').classList.add('show');setTimeout(()=>ta.focus(),60);dlgDone=v=>{$('#dlg').classList.remove('show');res(v)}})}
 $('#dta').onkeydown=e=>{if(e.key=='Enter'&&(e.ctrlKey||e.metaKey))dlgDone($('#dta').value);if(e.key=='Escape')dlgDone(null)};
 (()=>{const h=$('#dh'),m=$('#dm');let s=null,ox=0,oy=0;h.onpointerdown=e=>{s={x:e.clientX,y:e.clientY,ox,oy};h.setPointerCapture(e.pointerId)};h.onpointermove=e=>{if(!s)return;ox=s.ox+e.clientX-s.x;oy=s.oy+e.clientY-s.y;m.style.transform=`translate(${ox}px,${oy}px)`};h.onpointerup=()=>s=null})();
 function infoOf(o){if(!o)return'';if(o.orig){const F=o.exact?'matched exactly':'closest available: <b>'+esc(o.f)+(o.b?' Bold':'')+(o.i?' Italic':'')+'</b>';return`Original font: <b>${esc(o.orig)}</b> · ${F}${o.exact?'':` · <a onclick="$('#ffi').click()">add the exact font file</a>`}`}
- if(o.guess)return`Font guessed from the image: <b>${esc(o.guess)}</b> · a scan has no font data, so change the font above if it looks off`;return''}
+ if(o.guess)return`Font guessed from the image: <b>${esc(o.guess)}</b> · a scan has no font data, so change the font above if it looks off${HAS_OCR?'':' · reading text from scans needs the OCR version, so type it here'}`;return''}
 function restore(u){const p=P();p.base=mk(u.b.width,u.b.height);G(p.base).drawImage(u.b,0,0);p.ops=u.o.map(o=>({...o}));p.items=u.it;sel=null}
 async function editObj(o,pre){const p=P();sel=o;opts();draw();const nt=await askText('Edit text',o.txt,{live:v=>{o.txt=v;draw()},info:infoOf(o),ph:o.reading?'Reading text from the selection…':''});
  if(nt===null){if(pre){const k=p.undo.indexOf(pre);if(k>=0)p.undo.length=k;restore(pre)}}else if(!nt.trim()){p.ops=p.ops.filter(x=>x!==o);sel=null}else{o.txt=nt;sel=o}opts();draw()}
@@ -649,14 +650,14 @@ async function editRegion(r,tiny,a){const p=P(),b=p.base,items=p.items||[];
  const crop=mk(Math.max(1,r.w|0),Math.max(1,r.h|0));crop.getContext('2d').drawImage(b,r.x,r.y,r.w,r.h,0,0,crop.width,crop.height);
  const g=guessStyle(crop),ink=inkColor(b,r);coverRect(b,r);
  const gs=g?{f:g.serifR<.77?'Times':'Helvetica',b:g.boldR>.138,i:g.slant<=-.09}:{f:td.f,b:td.b,i:td.i};
- const o={k:'text',txt:'',x:r.x,y:r.y,size:Math.max(8,r.h/1.2*.92),c:ink,...gs,reading:1};if(g)o.guess=(gs.f=='Times'?'Serif':'Sans-serif')+(gs.b?' · Bold':'')+(gs.i?' · Italic':'');
+ const o={k:'text',txt:'',x:r.x,y:r.y,size:Math.max(8,r.h/1.2*.92),c:ink,...gs,reading:HAS_OCR?1:0};if(g)o.guess=(gs.f=='Times'?'Serif':'Sans-serif')+(gs.b?' · Bold':'')+(gs.i?' · Italic':'');
  p.ops.push(o);sel=o;
- ocrRegion(crop,r.h<110).then(tx=>{o.reading=0;const ta=$('#dta');if(dlgOpen()&&sel===o&&ta.value===''){ta._set(tx);fitSize(o,r)}ta.placeholder=''}).catch(e=>toast('Could not read the text: '+e.message,4000));
+ (HAS_OCR?ocrRegion(crop,r.h<110):Promise.resolve(null)).then(tx=>{o.reading=0;const ta=$('#dta');if(tx!==null&&dlgOpen()&&sel===o&&ta.value===''){ta._set(tx);fitSize(o,r)}ta.placeholder=''}).catch(e=>toast('Could not read the text: '+e.message,4000));
  await editObj(o,pre)}
 /* ---------- files ---------- */
 async function openFiles(fs){toast('Loading…',0);try{for(const f of fs){if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)){const d=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
- for(let i=1;i<=d.numPages;i++){const pg=await d.getPage(i),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:Math.min(3,2400/Math.max(v0.width,v0.height))}),c=mk(v.width|0,v.height|0),g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:v}).promise;addPage(c);pages.at(-1).items=await pdfItems(pg,v)}}
- else{const bm=await createImageBitmap(f),k=Math.min(1,2400/Math.max(bm.width,bm.height)),c=mk(bm.width*k|0,bm.height*k|0);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);addPage(c)}}
+ for(let i=1;i<=d.numPages;i++){const pg=await d.getPage(i),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:Math.min(3,MAXD/Math.max(v0.width,v0.height))}),c=mk(v.width|0,v.height|0),g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:v}).promise;addPage(c);pages.at(-1).items=await pdfItems(pg,v);pg.cleanup&&pg.cleanup()}d.destroy&&d.destroy()}
+ else{const bm=await createImageBitmap(f),k=Math.min(1,MAXD/Math.max(bm.width,bm.height)),c=mk(bm.width*k|0,bm.height*k|0);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);addPage(c)}}
  cur=Math.max(0,pages.length-1);toast('Loaded')}catch(e){toast('Could not open file: '+e.message,4000)}sel=null;opts();draw()}
 fi.onchange=()=>openFiles([...fi.files]);
 pf.onchange=async()=>{if(!pf.files[0]||!pend)return;const bm=await createImageBitmap(pf.files[0]),p=P();snap();const ar=bm.height/bm.width;let o;
@@ -695,7 +696,7 @@ function padClear(){pg.clearRect(0,0,pad.width,pad.height)}
 function trim(c){const g=c.getContext('2d'),d=g.getImageData(0,0,c.width,c.height),a=d.data;let x0=c.width,y0=c.height,x1=0,y1=0;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++)if(a[(y*c.width+x)*4+3]>20){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}
  if(x1<x0)return null;const o=mk(x1-x0+1,y1-y0+1);o.getContext('2d').drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);return o}
 function padSave(){const t=trim(pad);if(!t)return toast('Draw a signature first');addSig(t.toDataURL());padClear();sg.style.display='none'}
-si.onchange=async()=>{const bm=await createImageBitmap(si.files[0]),k=Math.min(1,900/bm.width),c=mk(bm.width*k|0,bm.height*k|0),g=c.getContext('2d');g.drawImage(bm,0,0,c.width,c.height);const im=g.getImageData(0,0,c.width,c.height),d=im.data;
+si.onchange=async()=>{const bm=await createImageBitmap(si.files[0]),k=Math.min(1,900/bm.width),c=mk(bm.width*k|0,bm.height*k|0),g=c.getContext('2d');g.drawImage(bm,0,0,c.width,c.height);bm.close&&bm.close();const im=g.getImageData(0,0,c.width,c.height),d=im.data;
  for(let i=0;i<d.length;i+=4){const l=(d[i]+d[i+1]+d[i+2])/3;d[i+3]=Math.max(0,Math.min(255,(190-l)*3.2))}g.putImageData(im,0,0);const t=trim(c);if(t){addSig(t.toDataURL());sg.style.display='none'}else toast('No ink found in photo')};
 function addSig(url){sigs.unshift(url);sigs=sigs.slice(0,8);try{localStorage.setItem('sigs',JSON.stringify(sigs))}catch(e){}aSig=null;useSig(0)}
 function useSig(i){const im=new Image();im.onload=()=>{aSig={im,ar:im.height/im.width,i};opts()};im.src=sigs[i]}
